@@ -1,0 +1,135 @@
+---
+title: "Seat Clumping"
+author: "Niel Schrage"
+date: "2/12/2020"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(reprex)
+library(ggplot2)
+```
+
+## Decision Making
+
+do people clump by gender?
+how do you measure that? 
+how to deal with grad students?
+
+how would you measure a success case? 
+compare against 50% / 50%
+compare sample v. reality to “idealized world”
+sufficient statistic for measurement clumping…
+
+doing 1000 samples and then comparing the our sample mean against it
+3/7 are clumped → is that a good representation
+2/7 are equal → is that a good representation
+
+
+ 
+
+### Visual Representation of the Class
+
+M: 14, F: 16
+
+MMFF
+
+MMFF
+
+MMFF
+
+MMFF
+
+MMFF
+
+MMFF
+
+MMFF
+
+FF
+
+
+
+```{r simulation, echo = FALSE}
+
+# make sure we get same result as one we made conclusions on
+
+set.seed(31)
+
+# running 1000 simulations
+
+n_sims <- 1000
+n_tables <- rep(NA, n_sims)
+
+for (s in 1:n_sims) {
+
+  # creating a vector of 30 students, we are not including grad students
+
+  vector <- (1:30)
+
+  # this is the split of the class. Creates a vector of 30 values
+
+  genders <- c(rep("M", 14), rep("F", 16))
+
+  # creating a dataframe to make our calculations. We included the sample function to get random seat assignment
+
+  x <- data.frame(vector, genders, sample(1:30, 30, replace = F))
+  colnames(x) <- c("student", "genders", "seat")
+
+
+  x <- x %>%
+
+    # our nifty way to group students by table. So if you have a seat number 1-4, you are put into table 1.
+
+    mutate(table = ceiling(seat / 4)) %>%
+    group_by(table) %>%
+
+    # count of how many males and females are in each table.
+
+    count(genders) %>%
+
+    # excluding table 8 because there are only 2 students there. 6 grad students mess everything up
+
+    filter(table != 8) %>%
+
+    # even tables.
+
+    filter(genders == "M" & n == 2) %>%
+    nrow()
+
+  n_tables[s] <- x
+}
+```
+
+
+```{r histogram, echo=FALSE}
+
+n_tables_graph <- as.data.frame(n_tables)
+
+n_tables_graph %>%
+  ggplot() +
+  geom_histogram(aes(x = n_tables), bins = 8) +
+  labs(
+    title = "Simulated Distribution of Tables with Even Gender Split",
+    subtitle = "Red = Simulated Mean, Blue = Observed Mean",
+    caption = "David Kane, Gov 1006, February 12",
+    x = "Number of Tables",
+    y = "Count"
+  ) +
+
+  geom_vline(aes(xintercept = mean(n_tables)), color = "red", linetype = "dashed", size = .5) +
+
+  geom_vline(aes(xintercept = 2), color = "blue", linetype = "dashed", size = .5) +
+
+  theme_light()
+```
+
+This histogram shows us that the number of equal tables (we defined as having 2M and 2F) we observed in class (2/7) is not an unlikely value. After running 1000 simulations of the class, and looking to see what the number of equal tables across the distribution was slightly below 3. 
+This histogram looks to be approximately normal... After looking at the data, we believe that the students in Gov 1006 
+
+If we were to continue looking at this information, we would try to look at the tables that were completely male or female, because we know how many are even -- but we don't know about the others. Are they all female/all male or is there a 3-1 mix. 
